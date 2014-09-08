@@ -27,8 +27,8 @@ options:
     - backup repo to dropbox as gzip2, encrypted by openssl with a given name
     gitr -rb /Path/To/dropbox_uploader/settings_file repo-test
     
-    - shortcut for git commit -m \"MSG\"
-    gitr xcom \"Commit Message\"
+    - shortcut for git commit -m "MSG"
+    gitr xcom "Commit Message"
 
     - shortcut for git add -A .
     gitr xadd
