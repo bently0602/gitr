@@ -1,0 +1,159 @@
+#!/bin/bash
+
+# --identity-file Derivied From:
+#-------------------------------------------------------------------------------
+# Wrapper script that can specify an ssh-key file with the Git command
+#
+# The MIT License (MIT) - http://opensource.org/licenses/MIT
+# Copyright (c) 2013 Alvin Abad
+#-------------------------------------------------------------------------------
+ 
+ext=".tar.bz2"
+
+if [ $# -eq 0 ]; then
+    echo 'gitr is a wrapper around git'
+    echo '~GIT~HELP~~~~~~~~~~~~~~~~~~~'
+    git help
+    echo '~GITR~HELP~~~~~~~~~~~~~~~~~~'
+    echo "usage: gitr
+    [-i|--identity-file]
+    [-rb|--remote-backup|xbackup]
+    [-rr|--remote-restore|xrestore]
+    [-xc|-xcom|xcommit]
+    [xadd]
+options:
+    - use a specified identity key
+    gitr -i ssh-key-file normal-git-commands
+    
+    - restore repo to a backuped dropbox one (made with rb)
+    gitr -rr /Path/To/dropbox_uploader/settings_file repo-test
+
+    - backup repo to dropbox as gzip2, encrypted by openssl with a given name
+    gitr -rb /Path/To/dropbox_uploader/settings_file repo-test
+    
+    - shortcut for git commit -m \"MSG\"
+    gitr xcom \"Commit Message\"
+
+    - shortcut for git add -A .
+    gitr xadd
+
+    - if gitr has commands that are not gitr commands
+    - it forward them to git.
+    gitr checkout master
+    - is the same as
+    git checkout master"
+    exit 1
+fi
+
+# remove temporary file on exit
+trap 'rm -f /tmp/.git_ssh.$$' 0
+
+# use specificed identity file
+if [ "$1" = "-i" ] || [ "$1" = "--identity-file" ]; then
+    SSH_KEY=$2; shift; shift
+    echo "ssh -i "$SSH_KEY" \"\$@\"" > /tmp/.git_ssh.$$
+    chmod +x /tmp/.git_ssh.$$
+    export GIT_SSH=/tmp/.git_ssh.$$
+fi
+ 
+# remote restore from dropbox
+if [ "$1" = "--remote-restore" ] || [ "$1" = "-rr" ] || [ "$1" = "xrestore" ]; then
+    echo "WARNING! This remove all contents in this directory!"
+    echo "$(pwd)"
+    read -p "Are you sure(Y/n)? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ $REPLY =~ ^[Y]$ ]]; then
+        if [[ -e $2 ]]; then
+            #if [[ -e ".git" ]]; then
+            find . -delete
+            #fi 
+            echo "- Downloading backup named $3"
+            mkdir "/tmp/$$GITX"
+            dropbox_uploader -f $2 download "/gitbackups/$3$ext"".enc" "/tmp/$$GITX/""$3$ext"".enc.tmp"        
+            echo "- Decrypting $3"
+            openssl enc -aes-256-cbc -d -in "/tmp/$$GITX/""$3$ext"".enc.tmp" > "/tmp/$$GITX/""$3$ext"
+            if [[ -e "/tmp/$$GITX/""$3$ext"".enc.tmp" ]]; then
+                rm -f "/tmp/$$GITX/""$3$ext"".enc.tmp"
+            fi
+            echo "- Extracting $3"
+            tar -xjf "/tmp/$$GITX/""$3$ext" -C "/tmp/$$GITX/"
+            if [[ -e "/tmp/$$GITX/""$3$ext" ]]; then
+                rm -f "/tmp/$$GITX/""$3$ext"
+            fi            
+            mv -f "/tmp/$$GITX/"".git" "/tmp/$$GITX/""backupgit"           
+            echo "- Cloning $3 from restore"
+            git clone "/tmp/$$GITX/""backupgit" ./                                    
+            rm -rf "/tmp/$$GITX/""backupgit"          
+
+            echo "- Done with remote restore!"
+            exit 1
+        else
+            echo "ERROR! Current directory."
+            exit 1
+        fi
+    else
+        exit 1
+    fi
+fi
+
+# remote backup to dropbox
+if [ "$1" = "--remote-backup" ] || [ "$1" = "-rb" ] || [ "$1" = "xbackup" ]; then
+    if [ -e '.git' ]; then
+        if [ -e $2 ]; then
+            echo "- Deleting previous backup on dropbox named $3 if it is there"
+            dropbox_uploader -f "$2" delete "/gitbackups/$3$ext"".enc"
+            echo "- Creating backup named $3"
+            tar -cjf "/tmp/$3$ext" .git
+            echo "- Encrypting archive with aes 256 cbc"
+            openssl enc -aes-256-cbc -in "/tmp/$3$ext" -out "/tmp/""$3$ext"".enc"
+            echo "- Uploading to Dropbox backup named $3"
+            dropbox_uploader -f $2 upload "/tmp/$3$ext"".enc" "/gitbackups/$3$ext"".enc"
+            if [[ -e "/tmp/$3$ext" ]]; then
+                rm -f "/tmp/$3$ext"
+            fi   
+            if [[ -e "/tmp/$3$ext"".enc" ]]; then
+                rm -f "/tmp/$3$ext"".enc"
+            fi
+            echo "- Done with remote backup!"
+            exit 1
+        else
+            echo "ERROR!
+
+    Need to specify a settings file for remote-backup's dropbox
+        OR
+    Need to generate a settings file for dropbox_uploader
+
+    Usage:
+        gitr --remote-backup PATH_TO_FILE Generated_File_Name    
+
+    To Generate Settings File Use:
+        dropbox_uploader -f PATH_TO_FILE"
+            exit 1
+        fi
+    else
+        echo 'ERROR! Current directory needs to be a git repo.'
+        exit 1
+    fi
+fi
+
+if [ "$1" = "xcom" ] || [ "$1" = "xcommit" ] || [ "$1" = "-xc" ]; then
+    echo "git commit -m \"$2\""
+    git commit -m "$2"
+    exit 1
+fi
+
+if [ "$1" = "xadd" ] || [ "$1" = "-xa" ]; then
+    echo "git add -A ."
+    git add -A .
+    exit 1
+fi
+
+# in case the git command is repeated
+[ "$1" = "git" ] && shift
+ 
+# Run the git command
+git "$@"
+
+unset GIT_SSH
+
+
