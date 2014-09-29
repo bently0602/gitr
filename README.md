@@ -33,6 +33,9 @@ options:
     - shortcut for git add -A .
     gitr xadd
 
+    - generate key for git
+    gitr xgenkey
+
     - if gitr has commands that are not gitr commands
     - it forward them to git.
     gitr checkout master
