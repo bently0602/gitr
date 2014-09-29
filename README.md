@@ -17,6 +17,7 @@ usage: gitr
     [-rr|--remote-restore|xrestore]
     [-xc|-xcom|xcommit]
     [xadd]
+    [xgenkey|-xk]
 options:
     - use a specified identity key
     gitr -i ssh-key-file normal-git-commands
