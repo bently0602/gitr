@@ -21,6 +21,7 @@ if [ $# -eq 0 ]; then
     [-rr|--remote-restore|xrestore]
     [-xc|-xcom|xcommit]
     [xadd]
+    [xgenkey|-xk]
 options:
     - use a specified identity key
     gitr -i ssh-key-file normal-git-commands
@@ -36,6 +37,9 @@ options:
 
     - shortcut for git add -A .
     gitr xadd
+
+    - generate key for git
+    gitr xgenkey
 
     - if gitr has commands that are not gitr commands
     - it forward them to git.
@@ -148,6 +152,12 @@ if [ "$1" = "xadd" ] || [ "$1" = "-xa" ]; then
     exit 1
 fi
 
+if [ "$1" = "xgenkey" ] || [ "$1" = "-xk" ]; then
+    echo "ssh-keygen -t rsa -q -b 2048 -N \"\" -f ./key"
+    ssh-keygen -t rsa -q -b 2048 -N "" -f ./key
+    exit 1
+fi
+
 # in case the git command is repeated
 [ "$1" = "git" ] && shift
  
@@ -155,5 +165,3 @@ fi
 git "$@"
 
 unset GIT_SSH
-
-
