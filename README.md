@@ -10,6 +10,13 @@ Wrapper script that can specify an ssh-key file with the Git command
 The MIT License (MIT) - http://opensource.org/licenses/MIT
 Copyright (c) 2013 Alvin Abad
 
+I install with 
+```
+ln -s gitr /usr/bin/gitr
+ln -s dropbox_uploader /usr/bin/dropbox_uploader
+```
+
+
 ```
 usage: gitr
     [-i|--identity-file]
