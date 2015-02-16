@@ -41,7 +41,7 @@ options:
     - shortcut for git add -A .
     gitr xadd
 
-    - generate key for git
+    - generate key for git (creates in the current directory key and pub)
     gitr xgenkey
 
     - if gitr has commands that are not gitr commands
